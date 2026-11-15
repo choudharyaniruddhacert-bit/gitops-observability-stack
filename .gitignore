@@ -1,0 +1,10 @@
+# Secrets never go into Git
+*.secret
+secrets/
+.env
+
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
