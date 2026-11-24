@@ -1,0 +1,60 @@
+prometheus:
+  enabled: true
+  server:
+    replicaCount: 2
+    statefulSet:
+      enabled: true
+    retention: 15d
+    persistentVolume:
+      enabled: true
+      size: 50Gi
+    extraFlags:
+      - web.enable-lifecycle
+      - web.enable-remote-write-receiver
+    resources:
+      requests:
+        cpu: 500m
+        memory: 2Gi
+      limits:
+        memory: 4Gi
+  alertmanager:
+    enabled: true
+    replicaCount: 3
+    persistence:
+      enabled: true
+      size: 2Gi
+  kube-state-metrics:
+    enabled: true
+  prometheus-node-exporter:
+    enabled: true
+  prometheus-pushgateway:
+    enabled: false
+
+grafana:
+  enabled: true
+  replicas: 1
+  admin:
+    existingSecret: grafana-admin
+    userKey: admin-user
+    passwordKey: admin-password
+  persistence:
+    enabled: true
+    size: 10Gi
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          uid: prometheus
+          type: prometheus
+          access: proxy
+          url: http://observability-prometheus-server
+          isDefault: true
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+      folderAnnotation: grafana_folder
+      provider:
+        foldersFromFilesStructure: true

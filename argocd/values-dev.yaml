@@ -1,0 +1,21 @@
+prometheus:
+  server:
+    replicaCount: 1
+    retention: 3d
+    persistentVolume:
+      size: 5Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 512 Mi
+      limits:
+        memory: 1Gi
+  alertmanager:
+    replicaCount: 1
+    persistence:
+      size: 1Gi
+
+grafana:
+  persistence:
+    size: 2Gi
+    

@@ -8,3 +8,7 @@ secrets/
 .DS_Store
 Thumbs.db
 
+rendered-dev.yaml
+
+graphify-out/
+
