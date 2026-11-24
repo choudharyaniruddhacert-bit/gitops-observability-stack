@@ -7,7 +7,7 @@ prometheus:
     resources:
       requests:
         cpu: 100m
-        memory: 512 Mi
+        memory: 512Mi
       limits:
         memory: 1Gi
   alertmanager:
@@ -18,4 +18,4 @@ prometheus:
 grafana:
   persistence:
     size: 2Gi
-    
+
