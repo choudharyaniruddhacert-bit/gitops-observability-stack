@@ -19,3 +19,20 @@ grafana:
   persistence:
     size: 2Gi
 
+seaweedfs:
+  master:
+    volumeSizeLimitMB: 100
+  allInOne:
+    data:
+      size: 5Gi
+
+loki:
+  singleBinary:
+    persistence:
+      size: 2Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        memory: 1Gi

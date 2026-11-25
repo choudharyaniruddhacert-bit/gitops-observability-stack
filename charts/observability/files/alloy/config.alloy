@@ -1,0 +1,55 @@
+// ---------- Logging of Alloy itself ----------
+logging {
+  level  = "info"
+  format = "logfmt"
+}
+
+// ---------- 1. Discover all pods in the cluster ----------
+discovery.kubernetes "pods" {
+  role = "pod"
+}
+
+// ---------- 2. Turn K8s metadata into Loki labels ----------
+discovery.relabel "pods" {
+  targets = discovery.kubernetes.pods.targets
+
+  rule {
+    source_labels = ["__meta_kubernetes_namespace"]
+    target_label  = "namespace"
+  }
+
+  rule {
+    source_labels = ["__meta_kubernetes_pod_name"]
+    target_label  = "pod"
+  }
+
+  rule {
+    source_labels = ["__meta_kubernetes_pod_container_name"]
+    target_label  = "container"
+  }
+
+  rule {
+    source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
+    target_label  = "app"
+  }
+}
+
+// ---------- 3. Read pod logs through the Kubernetes API ----------
+loki.source.kubernetes "pods" {
+  targets    = discovery.relabel.pods.output
+  forward_to = [loki.write.default.receiver]
+}
+
+// ---------- 4. Collect Kubernetes events ----------
+loki.source.kubernetes_events "events" {
+  job_name   = "kubernetes-events"
+  log_format = "logfmt"
+  forward_to = [loki.write.default.receiver]
+}
+
+// ---------- 5. Push everything to Loki ----------
+loki.write "default" {
+  endpoint {
+    url = "http://observability-loki:3100/loki/api/v1/push"
+  }
+}
