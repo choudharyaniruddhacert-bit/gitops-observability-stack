@@ -36,3 +36,15 @@ loki:
         memory: 256Mi
       limits:
         memory: 1Gi
+
+tempo:
+  tempo:
+    retention: 24h
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        memory: 1Gi
+  persistence:
+    size: 2Gi

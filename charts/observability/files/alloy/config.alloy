@@ -4,12 +4,14 @@ logging {
   format = "logfmt"
 }
 
-// ---------- 1. Discover all pods in the cluster ----------
+// =====================  LOGS (P3)  =====================
+
+// 1. Discover all pods in the cluster
 discovery.kubernetes "pods" {
   role = "pod"
 }
 
-// ---------- 2. Turn K8s metadata into Loki labels ----------
+// 2. Turn K8s metadata into Loki labels
 discovery.relabel "pods" {
   targets = discovery.kubernetes.pods.targets
 
@@ -34,22 +36,57 @@ discovery.relabel "pods" {
   }
 }
 
-// ---------- 3. Read pod logs through the Kubernetes API ----------
+// 3. Read pod logs through the Kubernetes API
 loki.source.kubernetes "pods" {
   targets    = discovery.relabel.pods.output
   forward_to = [loki.write.default.receiver]
 }
 
-// ---------- 4. Collect Kubernetes events ----------
+// 4. Collect Kubernetes events
 loki.source.kubernetes_events "events" {
   job_name   = "kubernetes-events"
   log_format = "logfmt"
   forward_to = [loki.write.default.receiver]
 }
 
-// ---------- 5. Push everything to Loki ----------
+// 5. Push logs to Loki
 loki.write "default" {
   endpoint {
     url = "http://observability-loki:3100/loki/api/v1/push"
+  }
+}
+
+// =====================  TRACES (P4)  =====================
+
+// 6. Receive traces from apps over OTLP (gRPC 4317, HTTP 4318)
+otelcol.receiver.otlp "default" {
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+
+  output {
+    traces = [otelcol.processor.batch.default.input]
+  }
+}
+
+// 7. Batch spans before sending (fewer, bigger requests)
+otelcol.processor.batch "default" {
+  output {
+    traces = [otelcol.exporter.otlp.tempo.input]
+  }
+}
+
+// 8. Send traces to Tempo over OTLP gRPC
+otelcol.exporter.otlp "tempo" {
+  client {
+    endpoint = "observability-tempo:4317"
+
+    tls {
+      insecure = true
+    }
   }
 }

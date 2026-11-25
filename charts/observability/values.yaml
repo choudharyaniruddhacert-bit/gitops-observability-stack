@@ -55,6 +55,28 @@ grafana:
           type: loki
           access: proxy
           url: http://observability-loki:3100
+          jsonData:                                   # P4: log → trace link
+            derivedFields:
+              - name: TraceID
+                matcherType: regex
+                matcherRegex: 'trace_id=(\w+)'
+                url: '$${__value.raw}'
+                datasourceUid: tempo
+                urlDisplayLabel: View trace
+        - name: Tempo                                 # P4: new data source
+          uid: tempo
+          type: tempo
+          access: proxy
+          url: http://observability-tempo:3200
+          jsonData:
+            tracesToLogsV2:                           # P4: trace → log link
+              datasourceUid: loki
+              spanStartTimeShift: "-5m"
+              spanEndTimeShift: "5m"
+              customQuery: true
+              query: '{namespace="demo"} |= "$${__trace.traceId}"'
+            nodeGraph:
+              enabled: true
   sidecar:
     dashboards:
       enabled: true
@@ -147,6 +169,37 @@ loki:
   test:
     enabled: false
 
+tempo:                                                # P4: new block
+  enabled: true
+  tempo:
+    retention: 168h
+    extraArgs:
+      config.expand-env: true
+    extraEnvFrom:
+      - secretRef:
+          name: seaweedfs-s3
+    storage:
+      trace:
+        backend: s3
+        s3:
+          bucket: tempo-traces
+          endpoint: seaweedfs-all-in-one.observability.svc:8333
+          access_key: ${AWS_ACCESS_KEY_ID}
+          secret_key: ${AWS_SECRET_ACCESS_KEY}
+          insecure: true
+          forcepathstyle: true
+        wal:
+          path: /var/tempo/wal
+    resources:
+      requests:
+        cpu: 500m
+        memory: 1Gi
+      limits:
+        memory: 2Gi
+  persistence:
+    enabled: true
+    size: 10Gi
+
 alloy:
   enabled: true
   controller:
@@ -157,3 +210,12 @@ alloy:
       create: false
       name: alloy-config
       key: config.alloy
+    extraPorts:                                       # P4: OTLP receiver ports
+      - name: otlp-grpc
+        port: 4317
+        targetPort: 4317
+        protocol: TCP
+      - name: otlp-http
+        port: 4318
+        targetPort: 4318
+        protocol: TCP
